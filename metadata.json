@@ -1,0 +1,6 @@
+{
+  "name": "Children Vaccine Mentor",
+  "description": "Child vaccination management, parental health record, three-stage reminders, growth tracker, and post-vaccination symptom monitoring application for parents in India.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
