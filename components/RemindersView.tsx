@@ -14,11 +14,8 @@ import {
   Calendar,
   Send,
   ShieldCheck,
-  Smartphone,
-  Power,
 } from 'lucide-react';
 import { ReminderStage, ReminderStatus } from '@/lib/types';
-import { subscribeToPushNotifications } from '@/lib/push-notifications';
 
 export function RemindersView() {
   const {
@@ -36,18 +33,6 @@ export function RemindersView() {
   const [stageFilter, setStageFilter] = useState<'all' | ReminderStage>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'delivered' | 'skipped_past'>('all');
   const [testSent, setTestSent] = useState(false);
-  const [offlinePushActive, setOfflinePushActive] = useState(false);
-
-  const handleEnableOfflinePush = async () => {
-    const success = await subscribeToPushNotifications('demo_user_1');
-    if (success) {
-      setOfflinePushActive(true);
-      alert(language === 'mr'
-        ? 'यशस्वी! आता ही वेबसाइट बंद असली तरीही आपल्या डिव्हाइसवर सूचना मिळतील.'
-        : 'Success! Push subscription active. You will now receive reminders even when the website is closed.');
-    }
-  };
-
   if (!selectedChild) {
     return (
       <div className="text-center py-12 text-sm text-slate-500">
@@ -79,7 +64,7 @@ export function RemindersView() {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">
             <ShieldCheck className="w-4 h-4" />
-            <span>3-Stage Reminder Guarantee</span>
+            <span>Vaccination Reminder Schedule</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             {t.reminders.title}
@@ -101,31 +86,8 @@ export function RemindersView() {
         </div>
       </div>
 
-      {/* Closed Website Push Delivery Card */}
-      <div className="bg-gradient-to-r from-emerald-900 to-teal-900 text-white rounded-2xl p-5 shadow-lg border border-emerald-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Smartphone className="w-5 h-5 text-emerald-300" />
-            <h3 className="font-bold text-base text-white">
-              {language === 'mr'
-                ? 'वेबसाइट बंद असतानाही सूचना मिळवा (Closed-App Delivery)'
-                : 'Guaranteed Notifications Even When Website / App Is Closed'}
-            </h3>
-          </div>
-          <p className="text-xs text-emerald-100/90 max-w-2xl leading-relaxed">
-            {language === 'mr'
-              ? 'आपला फोन लॉक असला किंवा ब्राउझर पूर्णपणे बंद असला तरीही, आमचा क्लाउड सर्व्हर (Cloud Server Cron) थेट आपल्या फोनवर पुश अलर्ट पाठवतो.'
-              : 'Our cloud server cron runs independently in the background. Even if your browser is closed, computer is shut down, or phone screen is locked, push alerts wake up your device lock screen via the W3C Push API & Service Worker.'}
-          </p>
-        </div>
-
-        <button
-          onClick={handleEnableOfflinePush}
-          className="px-4 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2 flex-shrink-0"
-        >
-          <Power className="w-4 h-4 text-slate-950" />
-          <span>{offlinePushActive ? 'Offline Push Enabled ✓' : (language === 'mr' ? 'ऑफलाइन पुश सूचना सुरू करा' : 'Enable Closed-Site Push')}</span>
-        </button>
+      <div className="border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-xs text-amber-950">
+        Background push delivery is not configured for this local account system. Reminder entries are stored in this browser only; do not rely on them as medical alerts.
       </div>
 
       {/* Three Stage Overview Cards */}
@@ -293,12 +255,12 @@ export function RemindersView() {
         )}
       </div>
 
-      {/* Background Cron Architecture Note */}
+      {/* Local reminder behavior */}
       <div className="bg-stone-100/80 rounded-2xl p-4 border border-stone-200 text-xs text-slate-600 flex items-start gap-3">
         <Info className="w-5 h-5 text-emerald-800 flex-shrink-0 mt-0.5" />
         <div className="leading-relaxed">
-          <strong className="text-slate-900">Server Background Delivery Engine:</strong>{' '}
-          {t.reminders.cronEndpointInfo} Safe idempotency keys prevent duplicate deliveries during repeated cron runs. Pending reminders are automatically cancelled upon vaccination completion.
+          <strong className="text-slate-900">Local reminder schedule:</strong>{' '}
+          Reminders are stored in this browser and appear in the app while it is open. They are not delivered when the app is closed or on another device. Pending reminders are automatically cancelled when a vaccination is completed.
         </div>
       </div>
     </div>

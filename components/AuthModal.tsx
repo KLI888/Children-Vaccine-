@@ -11,9 +11,7 @@ import {
   User,
   ArrowRight,
   Sparkles,
-  Users,
   CheckCircle2,
-  KeyRound,
   AlertCircle,
   Database,
 } from 'lucide-react';
@@ -24,10 +22,10 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { user, allUsers, language, login, signup, switchUser, enterDemoMode } = useApp();
+  const { language, login, signup, enterDemoMode } = useApp();
   const t = translations[language];
 
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -52,7 +50,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
         setSuccessMessage('Login successful! Loading your child records...');
         setTimeout(() => onClose(), 400);
-      } else if (mode === 'signup') {
+      } else {
         const res = await signup(email, password, displayName || 'Parent');
         if (!res.success) {
           setErrorMessage(res.error || 'Registration failed.');
@@ -60,8 +58,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
         setSuccessMessage('Account created successfully! Your private records are ready.');
         setTimeout(() => onClose(), 400);
-      } else {
-        setSuccessMessage('If an account exists for this email, password instructions have been sent.');
       }
     } finally {
       setLoading(false);
@@ -70,11 +66,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const handleDemo = () => {
     enterDemoMode();
-    onClose();
-  };
-
-  const handleQuickSwitch = (targetUserId: string) => {
-    switchUser(targetUserId);
     onClose();
   };
 
@@ -91,12 +82,11 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <h3 className="font-bold text-slate-900 text-base">
                 {mode === 'login' && (language === 'mr' ? 'पालक खात्यात प्रवेश करा' : 'Parent Account Login')}
                 {mode === 'signup' && (language === 'mr' ? 'नवीन पालक खाते तयार करा' : 'Register New Parent Account')}
-                {mode === 'forgot' && (language === 'mr' ? 'पासवर्ड विसरलात?' : 'Reset Password')}
               </h3>
               <p className="text-xs text-slate-500">
                 {language === 'mr'
-                  ? 'प्रत्येक पालकाचा डेटा सुरक्षित व पूर्णपणे वेगळा राहतो'
-                  : 'Isolated multi-user database: each parent has private records'}
+                  ? 'खाते आणि नोंदी या ब्राउझरमध्ये साठवल्या जातात'
+                  : 'Accounts and records stay in this browser'}
               </p>
             </div>
           </div>
@@ -217,40 +207,28 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </div>
             </div>
 
-            {mode !== 'forgot' && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-slate-700">
-                    {t.auth.passwordLabel} *
-                  </label>
-                  {mode === 'login' && (
-                    <button
-                      type="button"
-                      onClick={() => setMode('forgot')}
-                      className="text-xs text-emerald-800 hover:underline"
-                    >
-                      {t.auth.forgotPassword}
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="password"
-                    required
-                    placeholder={mode === 'signup' ? 'Min 4 characters' : 'Enter password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                  />
-                </div>
-                {mode === 'login' && (
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Demo account password: <code className="font-mono text-emerald-800 font-semibold">password123</code>
-                  </p>
-                )}
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">
+                {t.auth.passwordLabel} *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="password"
+                  required
+                  minLength={mode === 'signup' ? 4 : undefined}
+                  placeholder={mode === 'signup' ? 'Min 4 characters' : 'Enter password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                />
               </div>
-            )}
+              {mode === 'login' && (
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Demo account password: <code className="font-mono text-emerald-800 font-semibold">password123</code>
+                </p>
+              )}
+            </div>
 
             <div className="pt-2">
               <button
@@ -259,74 +237,19 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 className="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 <span>
-                  {mode === 'login' && t.auth.loginBtn}
-                  {mode === 'signup' && 'Create Account & Access Database'}
-                  {mode === 'forgot' && 'Send Reset Link'}
+                  {mode === 'login' ? t.auth.loginBtn : 'Create Account'}
                 </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </form>
 
-          {/* Registered Accounts on this device (Examiner quick switcher) */}
-          {allUsers.length > 0 && (
-            <div className="pt-4 border-t border-stone-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-emerald-800" />
-                  <span>Existing Accounts on this Device ({allUsers.length}):</span>
-                </span>
-                <span className="text-[10px] text-emerald-800 font-mono">1-Click Switch</span>
-              </div>
-
-              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                {allUsers.map((u) => {
-                  const isActive = user?.id === u.id;
-                  return (
-                    <div
-                      key={u.id}
-                      className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-colors ${
-                        isActive
-                          ? 'bg-emerald-50 border-emerald-300'
-                          : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
-                      }`}
-                    >
-                      <div className="min-w-0 pr-2">
-                        <div className="font-semibold text-slate-900 flex items-center gap-1.5 truncate">
-                          <span>{u.displayName}</span>
-                          {isActive && (
-                            <span className="px-1.5 py-0.2 text-[10px] font-bold bg-emerald-200 text-emerald-900 rounded">
-                              Current
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-mono truncate">{u.email}</div>
-                      </div>
-
-                      {!isActive ? (
-                        <button
-                          type="button"
-                          onClick={() => handleQuickSwitch(u.id)}
-                          className="px-2.5 py-1 bg-stone-200 hover:bg-emerald-800 hover:text-white text-slate-700 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-                        >
-                          Switch
-                        </button>
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Database isolation explanation banner */}
           <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-[11px] text-slate-600 flex items-start gap-2">
             <Database className="w-4 h-4 text-emerald-800 flex-shrink-0 mt-0.5" />
             <div>
-              <strong className="text-slate-900 font-semibold block">Multi-Parent Data Isolation</strong>
-              Each parent account only sees their own children. When you register a new parent, they begin with a clean slate (0 children), ensuring zero data bleed between users.
+              <strong className="text-slate-900 font-semibold block">Local demonstration accounts</strong>
+              Accounts and health records are stored in this browser only. Avoid shared devices and do not use this local demo as secure storage for real patient records.
             </div>
           </div>
         </div>

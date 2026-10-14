@@ -3,6 +3,15 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { format, subDays, addMonths, subMonths } from 'date-fns';
 import {
+  ADMIN_USER_EMAIL,
+  ADMIN_USER_PASSWORD,
+  STORAGE_KEY_PREFIX,
+  canSwitchUser,
+  createDefaultAdminUser,
+  getUserDataKey,
+  isAdminUser,
+} from './admin';
+import {
   Child,
   ChildVaccination,
   GrowthRecord,
@@ -23,6 +32,7 @@ import {
 
 interface AppContextType {
   user: UserProfile | null;
+  isAdmin: boolean;
   allUsers: UserProfile[];
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -96,12 +106,9 @@ interface AppContextType {
     inAppTriggered: boolean;
     message: string;
   }>;
-  runBackgroundCronSimulation: () => Promise<any>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
-
-const STORAGE_KEY_PREFIX = 'cvm_v1_';
 
 // Audio chime using Web Audio API (works without external audio assets)
 function playNotificationChime() {
@@ -139,7 +146,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const rawUsers = localStorage.getItem(`${STORAGE_KEY_PREFIX}all_users`);
         if (rawUsers) {
           const parsed = JSON.parse(rawUsers);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const normalized = parsed.map((item: Partial<UserProfile>) => {
+              const resolvedRole = (item.role ?? (item.email?.toLowerCase() === ADMIN_USER_EMAIL ? 'admin' : 'parent')) as 'parent' | 'admin';
+              return {
+                ...item,
+                role: resolvedRole,
+              } as UserProfile;
+            });
+            const hasAdmin = normalized.some((userItem) => isAdminUser(userItem));
+            if (!hasAdmin) normalized.push(createDefaultAdminUser());
+            return normalized;
+          }
         }
       } catch {}
     }
@@ -153,7 +171,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timezone: 'Asia/Kolkata',
         onboardingCompleted: true,
         createdAt: '2026-01-01T00:00:00.000Z',
+        role: 'parent',
       },
+      createDefaultAdminUser(),
     ];
   });
   const [language, setLanguageState] = useState<Language>(() => {
@@ -214,6 +234,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timezone: 'Asia/Kolkata',
       onboardingCompleted: true,
       createdAt: new Date().toISOString(),
+      role: 'parent',
     };
 
     const today = new Date();
@@ -345,8 +366,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDeliveryLogs(initialLogs);
   };
 
-  const getUserDataKey = (userId: string) => `${STORAGE_KEY_PREFIX}userdata_${userId}`;
-
   // Helper to load user and their isolated data
   const loadUserAndIsolatedData = (targetUser: UserProfile) => {
     setUser(targetUser);
@@ -430,16 +449,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Save changes to localStorage per active user
   useEffect(() => {
     if (!isInitialized || typeof window === 'undefined' || !user) return;
+    const dataToSave = {
+      children: childrenList,
+      vaccinations,
+      reminders,
+      growthRecords,
+      symptomRecords,
+      logs: deliveryLogs,
+      prefs: preferences,
+    };
+
     try {
-      const dataToSave = {
-        children: childrenList,
-        vaccinations,
-        reminders,
-        growthRecords,
-        symptomRecords,
-        logs: deliveryLogs,
-        prefs: preferences,
-      };
       localStorage.setItem(getUserDataKey(user.id), JSON.stringify(dataToSave));
       localStorage.setItem(`${STORAGE_KEY_PREFIX}active_user_id`, user.id);
     } catch {
@@ -467,6 +487,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!cleanEmail) {
       return { success: false, error: 'Email address is required.' };
     }
+
     const existing = allUsers.find((u) => u.email.toLowerCase() === cleanEmail);
 
     if (!existing) {
@@ -476,7 +497,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    if (existing.password && password && existing.password !== password) {
+    if (!password || !existing.password || existing.password !== password) {
       return {
         success: false,
         error: 'Incorrect password. Please verify and try again.',
@@ -508,6 +529,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    if (cleanEmail === ADMIN_USER_EMAIL) {
+      return {
+        success: false,
+        error: 'This admin account is reserved. Please sign in using the admin credentials instead.',
+      };
+    }
+
     const newUser: UserProfile = {
       id: `user_${Date.now()}`,
       email: cleanEmail,
@@ -517,6 +545,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timezone: 'Asia/Kolkata',
       onboardingCompleted: true,
       createdAt: new Date().toISOString(),
+      role: 'parent',
     };
 
     const updated = [...allUsers, newUser];
@@ -569,13 +598,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const switchUser = (userId: string) => {
     const target = allUsers.find((u) => u.id === userId);
-    if (target) {
+    if (target && canSwitchUser(user, target)) {
       loadUserAndIsolatedData(target);
     }
   };
 
+  const isAdmin = isAdminUser(user);
+
   const deleteUserAccount = (userId: string) => {
-    if (userId === 'demo_user_1') return; // protect default demo user
+    if (userId === 'demo_user_1' || allUsers.find((u) => u.id === userId)?.role === 'admin') return;
     const updated = allUsers.filter((u) => u.id !== userId);
     setAllUsers(updated);
     if (typeof window !== 'undefined') {
@@ -942,36 +973,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  // Run live simulation of background cron worker endpoint (/api/cron/process-reminders)
-  const runBackgroundCronSimulation = async () => {
-    try {
-      const res = await fetch('/api/cron/process-reminders');
-      const data = await res.json();
-
-      // Log cron run
-      const cronLog: NotificationDeliveryLog = {
-        id: `cron_log_${Date.now()}`,
-        reminderId: 'cron_worker',
-        channel: 'server_cron_job',
-        status: data.success ? 'success' : 'failed',
-        responsePayload: data,
-        attemptedAt: new Date().toISOString(),
-      };
-      setDeliveryLogs((prev) => [cronLog, ...prev]);
-
-      return data;
-    } catch (err: any) {
-      return {
-        success: false,
-        error: err?.message || 'Network error executing cron endpoint',
-      };
-    }
-  };
-
   return (
     <AppContext.Provider
       value={{
         user,
+        isAdmin,
         allUsers,
         language,
         setLanguage,
@@ -1006,7 +1012,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updatePreferences,
         markReminderDelivered,
         triggerTestNotification,
-        runBackgroundCronSimulation,
       }}
     >
       {children}

@@ -131,6 +131,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   password?: string;
+  role?: 'parent' | 'admin';
   preferredLanguage: Language;
   timezone: string;
   onboardingCompleted: boolean;

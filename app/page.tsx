@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar, ActiveTab } from '@/components/Sidebar';
@@ -24,9 +24,9 @@ import { AddSymptomModal } from '@/components/AddSymptomModal';
 import { AuthModal } from '@/components/AuthModal';
 import { OverdueCatchUpModal } from '@/components/OverdueCatchUpModal';
 import { PrintableImmunizationCardModal } from '@/components/PrintableImmunizationCardModal';
-import { registerServiceWorker } from '@/lib/push-notifications';
 
 export default function Home() {
+  const { isAdmin } = useApp();
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
 
   // Modal states
@@ -40,10 +40,16 @@ export default function Home() {
   const [editDueDateVaxId, setEditDueDateVaxId] = useState<string | null>(null);
   const [overdueCatchUpVaxId, setOverdueCatchUpVaxId] = useState<string | null>(null);
 
-  // Register service worker on mount
-  useEffect(() => {
-    registerServiceWorker();
-  }, []);
+  const handleTabChange = (tab: ActiveTab) => {
+    if (tab === 'admin' && !isAdmin) return;
+    setActiveTab(tab);
+  };
+
+  const visibleTab: ActiveTab = isAdmin
+    ? 'admin'
+    : activeTab === 'admin'
+      ? 'dashboard'
+      : activeTab;
 
   return (
     <div className="min-h-screen bg-[#FBFBFA] text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
@@ -51,17 +57,21 @@ export default function Home() {
       <Navbar
         onOpenNotifications={() => setShowNotificationModal(true)}
         onOpenAuth={() => setShowAuthModal(true)}
-        onOpenAdmin={() => setActiveTab('admin')}
+        onSelectTab={handleTabChange}
       />
 
       {/* Main Container */}
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
         {/* Desktop Sidebar */}
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        {!isAdmin && <Sidebar activeTab={visibleTab} setActiveTab={handleTabChange} />}
 
         {/* Dynamic View Area */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-full overflow-x-hidden">
-          {activeTab === 'dashboard' && (
+          {isAdmin ? (
+            <AdminPanelView />
+          ) : (
+            <>
+          {visibleTab === 'dashboard' && (
             <DashboardView
               setActiveTab={setActiveTab}
               onOpenRecordModal={(vaxId) => setRecordVaxId(vaxId || null)}
@@ -73,37 +83,38 @@ export default function Home() {
             />
           )}
 
-          {activeTab === 'calendar' && (
+          {visibleTab === 'calendar' && (
             <CalendarView
               onOpenRecordModal={(vaxId) => setRecordVaxId(vaxId)}
               onOpenEditDueDateModal={(vaxId) => setEditDueDateVaxId(vaxId)}
             />
           )}
 
-          {activeTab === 'reminders' && <RemindersView />}
+          {visibleTab === 'reminders' && <RemindersView />}
 
-          {activeTab === 'children' && (
+          {visibleTab === 'children' && (
             <ChildrenView onOpenAddChild={() => setShowAddChildModal(true)} />
           )}
 
-          {activeTab === 'growth' && (
+          {visibleTab === 'growth' && (
             <GrowthTrackerView onOpenAddGrowth={() => setShowAddGrowthModal(true)} />
           )}
 
-          {activeTab === 'symptoms' && (
+          {visibleTab === 'symptoms' && (
             <SymptomTrackerView onOpenAddSymptom={() => setShowAddSymptomModal(true)} />
           )}
 
-          {activeTab === 'library' && <VaccineLibraryView />}
+          {visibleTab === 'library' && <VaccineLibraryView />}
 
-          {activeTab === 'settings' && <SettingsView />}
+          {visibleTab === 'settings' && <SettingsView />}
 
-          {activeTab === 'admin' && <AdminPanelView />}
+            </>
+          )}
         </main>
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      {!isAdmin && <MobileNav activeTab={visibleTab} setActiveTab={handleTabChange} />}
 
       {/* Modals & Dialogs */}
       <NotificationModal
@@ -160,7 +171,7 @@ export default function Home() {
       />
 
       {/* Live Notification Simulator for Teacher / Examiner */}
-      <ExaminerNotificationSimulator />
+      {!isAdmin && <ExaminerNotificationSimulator />}
     </div>
   );
 }

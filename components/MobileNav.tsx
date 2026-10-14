@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useApp } from '@/lib/store';
+import { isAdminUser } from '@/lib/admin';
 import { translations } from '@/lib/i18n';
 import { LayoutDashboard, Calendar, BellRing, TrendingUp, Baby, ShieldCheck } from 'lucide-react';
 import { ActiveTab } from './Sidebar';
@@ -12,8 +13,9 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ activeTab, setActiveTab }: MobileNavProps) {
-  const { language, reminders, selectedChild } = useApp();
+  const { language, reminders, selectedChild, user } = useApp();
   const t = translations[language];
+  const isAdmin = isAdminUser(user);
 
   const pendingRemindersCount = reminders.filter(
     (r) => r.childId === selectedChild?.id && r.status === 'pending'
@@ -25,8 +27,11 @@ export function MobileNav({ activeTab, setActiveTab }: MobileNavProps) {
     { id: 'reminders', label: t.nav.reminders, icon: BellRing, badge: pendingRemindersCount },
     { id: 'children', label: t.nav.children, icon: Baby },
     { id: 'growth', label: t.nav.growthTracker, icon: TrendingUp },
-    { id: 'admin', label: language === 'mr' ? 'प्रशासन' : 'Admin', icon: ShieldCheck },
   ];
+
+  if (isAdmin) {
+    tabs.push({ id: 'admin', label: language === 'mr' ? 'प्रशासन' : 'Admin', icon: ShieldCheck });
+  }
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 px-1 py-1.5 flex justify-around items-center">

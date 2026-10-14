@@ -6,6 +6,7 @@ import {
   VACCINE_DEFINITIONS,
   SCHEDULE_VERSION,
 } from '../lib/vaccine-data';
+import { ADMIN_USER_EMAIL, ADMIN_USER_PASSWORD, canSwitchUser, getUserDataKey, isAdminUser } from '../lib/admin';
 import { format, subDays, addDays } from 'date-fns';
 
 function assert(condition: boolean, message: string) {
@@ -138,6 +139,19 @@ export function runAllTests() {
   assert(ageEn.months >= 2, 'Age in months must be calculated accurately');
   assert(ageMr.formatted.includes('महिने'), 'Marathi age format must include महिने');
   console.log('✅ Test 7 Passed: Child age calculation in English and Marathi verified.');
+  passed++;
+
+  // TEST 8: Admin access control and default admin identity
+  assert(ADMIN_USER_EMAIL === 'admin@childvaccine.com', 'Admin email must be the default admin credential');
+  assert(ADMIN_USER_PASSWORD === 'admin123', 'Admin password must be the default secure demo credential');
+  assert(getUserDataKey('user_1') === 'cvm_v1_userdata_user_1', 'Admin child overview must read the store data key');
+  assert(isAdminUser({ email: ADMIN_USER_EMAIL, role: 'admin' }), 'Admin users must be recognized by role or email');
+  assert(!isAdminUser({ email: ADMIN_USER_EMAIL, role: 'parent' }), 'Admin email alone must not grant admin access');
+  assert(!isAdminUser({ email: 'parent@example.com', role: 'parent' }), 'Regular users must not be treated as admins');
+  assert(!canSwitchUser(null, { id: 'admin', email: ADMIN_USER_EMAIL, role: 'admin' }), 'Signed-out users must not switch into admin');
+  assert(!canSwitchUser({ id: 'parent', email: 'parent@example.com', role: 'parent' }, { id: 'admin', email: ADMIN_USER_EMAIL, role: 'admin' }), 'Parents must not switch into admin');
+  assert(canSwitchUser({ id: 'admin', email: ADMIN_USER_EMAIL, role: 'admin' }, { id: 'parent', email: 'parent@example.com', role: 'parent' }), 'Admins must be able to switch accounts from the admin view');
+  console.log('✅ Test 8 Passed: Admin identity and access control verified.');
   passed++;
 
   console.log(`\n🎉 ALL ${passed} AUTOMATED HEALTHCARE TESTS PASSED SUCCESSFULLY!`);

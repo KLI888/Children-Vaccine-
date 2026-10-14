@@ -2,13 +2,12 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
+import { isAdminUser, getUserDataKey } from '@/lib/admin';
 import { translations } from '@/lib/i18n';
 import { VACCINE_DEFINITIONS, calculateChildAge } from '@/lib/vaccine-data';
-import { isSupabaseConfigured } from '@/lib/supabase';
 import {
   ShieldCheck,
   Database,
-  Server,
   Play,
   Users,
   Baby,
@@ -44,31 +43,47 @@ export function AdminPanelView() {
     enterDemoMode,
   } = useApp();
 
-  const [cronRunning, setCronRunning] = useState(false);
-  const [cronResult, setCronResult] = useState<any | null>(null);
+  const isAdmin = isAdminUser(user);
   const [testNotificationResult, setTestNotificationResult] = useState<string | null>(null);
   const [activeTabSub, setActiveTabSub] = useState<'overview' | 'users' | 'vaccines' | 'notifications' | 'db'>('overview');
 
+  const localSystemChildren: Array<(typeof childrenList)[number] & { parentName: string; parentEmail: string }> = [];
+  if (typeof window !== 'undefined') {
+    for (const parent of allUsers) {
+      try {
+        const raw = localStorage.getItem(getUserDataKey(parent.id));
+        const parsed = raw ? JSON.parse(raw) : null;
+        const children = Array.isArray(parsed?.children) ? parsed.children : [];
+        for (const child of children) {
+          localSystemChildren.push({
+            ...child,
+            parentName: parent.displayName,
+            parentEmail: parent.email,
+          });
+        }
+      } catch {
+        // Ignore malformed local storage data while building admin overview
+      }
+    }
+  }
+  const systemChildren = localSystemChildren;
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-xl mx-auto mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center shadow-sm">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+          <ShieldCheck className="h-6 w-6" />
+        </div>
+        <h2 className="text-xl font-bold text-amber-900">Admin access required</h2>
+        <p className="mt-2 text-sm text-amber-800">
+          The admin panel is visible only to the system administrator account.
+        </p>
+      </div>
+    );
+  }
+
   // 12 core vaccines
   const coreVaccines = Object.values(VACCINE_DEFINITIONS);
-
-  const runCronJob = async () => {
-    setCronRunning(true);
-    setCronResult(null);
-
-    try {
-      const res = await fetch('/api/cron/process-reminders');
-      const data = await res.json();
-      setCronResult(data);
-    } catch (err: any) {
-      setCronResult({
-        success: false,
-        error: err?.message || 'Failed to reach cron endpoint',
-      });
-    } finally {
-      setCronRunning(false);
-    }
-  };
 
   const handleTestNotification = async () => {
     setTestNotificationResult('Simulating notification delivery...');
@@ -93,19 +108,19 @@ export function AdminPanelView() {
             {language === 'mr' ? 'आरोग्य प्रशासन व डेटाबेस नियंत्रण पॅनेल' : 'Medical Admin & Database Control Panel'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Real-time inspection of 12 UIP government vaccines, multi-parent account isolation, notification engine, and database persistence.
+            Accounts and child profiles are stored in this browser and are not synchronized to other devices.
           </p>
         </div>
 
         {/* Database Status Badge */}
-        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl self-start md:self-auto">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+        <div className="flex items-center gap-2.5 px-3.5 py-2.5 border rounded-xl self-start md:self-auto bg-emerald-50 border-emerald-200">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
           <div className="text-xs">
-            <strong className="block text-emerald-950 font-bold">
-              Database Connected & Operational
+            <strong className="block text-slate-950 font-bold">
+              Local browser storage
             </strong>
-            <span className="text-[11px] text-emerald-800 font-mono">
-              {isSupabaseConfigured ? 'Supabase PostgreSQL Cloud' : 'Embedded Relational DB (Active)'}
+            <span className="text-[11px] text-slate-700 font-mono">
+              Saved in this browser only
             </span>
           </div>
         </div>
@@ -116,10 +131,10 @@ export function AdminPanelView() {
         <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <Users className="w-4 h-4 text-emerald-700" />
-            <span className="text-[10px] uppercase font-bold text-slate-400">users</span>
+            <span className="text-[10px] uppercase font-bold text-slate-400">accounts</span>
           </div>
           <div className="text-xl font-black text-slate-900">{allUsers.length}</div>
-          <span className="text-[11px] text-slate-500">Registered Parents</span>
+          <span className="text-[11px] text-slate-500">Available in this browser</span>
         </div>
 
         <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm">
@@ -127,8 +142,8 @@ export function AdminPanelView() {
             <Baby className="w-4 h-4 text-emerald-700" />
             <span className="text-[10px] uppercase font-bold text-slate-400">children</span>
           </div>
-          <div className="text-xl font-black text-slate-900">{childrenList.length}</div>
-          <span className="text-[11px] text-slate-500">In Active Profile</span>
+          <div className="text-xl font-black text-slate-900">{systemChildren.length}</div>
+          <span className="text-[11px] text-slate-500">Visible in this browser origin</span>
         </div>
 
         <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm">
@@ -188,7 +203,7 @@ export function AdminPanelView() {
               : 'bg-white text-slate-600 hover:bg-stone-100 border border-stone-200'
           }`}
         >
-          Registered Parent Accounts ({allUsers.length})
+          User Accounts ({allUsers.length})
         </button>
         <button
           onClick={() => setActiveTabSub('vaccines')}
@@ -269,8 +284,8 @@ export function AdminPanelView() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-emerald-100 text-emerald-900 font-bold rounded-lg">
-                    Authenticated & Isolated
+                    <span className="px-3 py-1 bg-amber-100 text-amber-900 font-bold rounded-lg">
+                    Local demo account
                   </span>
                 </div>
               </div>
@@ -287,36 +302,6 @@ export function AdminPanelView() {
             )}
           </div>
 
-          {/* Background Cron Trigger Section */}
-          <div className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Server className="w-4 h-4 text-emerald-800" />
-                  <span>Background Cron Job Execution & Worker</span>
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Endpoint: <code className="bg-stone-100 px-1.5 py-0.5 rounded font-mono text-emerald-900 font-semibold">GET /api/cron/process-reminders</code> (Automated daily at 09:00 IST)
-                </p>
-              </div>
-
-              <button
-                onClick={runCronJob}
-                disabled={cronRunning}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold rounded-xl transition-all shadow-sm self-start sm:self-auto disabled:opacity-50"
-              >
-                <Play className="w-3.5 h-3.5 fill-white" />
-                <span>{cronRunning ? 'Executing Cron Batch...' : 'Trigger Scheduled Cron Now'}</span>
-              </button>
-            </div>
-
-            {cronResult && (
-              <div className="p-4 bg-stone-900 text-emerald-400 rounded-xl font-mono text-xs overflow-x-auto space-y-1">
-                <div className="text-slate-400">Server Response Payload from /api/cron/process-reminders:</div>
-                <pre>{JSON.stringify(cronResult, null, 2)}</pre>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -327,66 +312,78 @@ export function AdminPanelView() {
             <div>
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Users className="w-4 h-4 text-emerald-800" />
-                <span>Registered Parent Accounts Explorer</span>
+                <span>Registered User Accounts</span>
               </h2>
               <p className="text-xs text-slate-500">
-                Each parent profile has an isolated children bucket in the database. 1-click switch between accounts to verify data isolation.
+                Local account directory. Parent profiles can be switched in this browser; local storage is not secure storage for sensitive records.
               </p>
             </div>
             <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-              {allUsers.length} Parent Accounts
+              {allUsers.length} Accounts
             </span>
           </div>
 
-          <div className="divide-y divide-stone-100 text-xs">
-            {allUsers.map((u) => {
-              const isActive = user?.id === u.id;
-              return (
-                <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/60">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <strong className="text-sm text-slate-900">{u.displayName}</strong>
-                      <span className="text-slate-400">·</span>
-                      <span className="font-mono text-slate-600">{u.email}</span>
-                      {isActive && (
-                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-900 text-[10px] font-bold rounded">
-                          Active Session
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-stone-200 text-xs">
+              <thead className="bg-stone-50 text-slate-600">
+                <tr>
+                  <th className="px-4 py-3 text-left font-bold">User</th>
+                  <th className="px-4 py-3 text-left font-bold">Role</th>
+                  <th className="px-4 py-3 text-left font-bold">Email</th>
+                  <th className="px-4 py-3 text-left font-bold">Created</th>
+                  <th className="px-4 py-3 text-left font-bold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100 bg-white">
+                {allUsers.map((u) => {
+                  const isActive = user?.id === u.id;
+                  return (
+                    <tr key={u.id} className="hover:bg-stone-50/60">
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-slate-900">{u.displayName}</div>
+                        <div className="font-mono text-[11px] text-slate-500">ID: {u.id}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${u.role === 'admin' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-slate-700'}`}>
+                          {u.role === 'admin' ? 'Admin' : 'Parent'}
                         </span>
-                      )}
-                    </div>
-                    <div className="text-slate-500 text-[11px] mt-1">
-                      Account ID: <span className="font-mono text-slate-600">{u.id}</span> · Created: {new Date(u.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
+                        {isActive && (
+                          <span className="ml-2 inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-900">
+                            Active
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-slate-600">{u.email}</td>
+                      <td className="px-4 py-3 text-slate-600">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {isActive ? (
+                            <span className="text-xs font-bold text-emerald-700">Current</span>
+                          ) : (
+                            <button
+                              onClick={() => switchUser(u.id)}
+                              className="rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-900"
+                            >
+                              Switch
+                            </button>
+                          )}
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    {!isActive ? (
-                      <button
-                        onClick={() => switchUser(u.id)}
-                        className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg font-semibold text-xs transition-colors"
-                      >
-                        Switch To This Account
-                      </button>
-                    ) : (
-                      <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Current Account</span>
-                      </span>
-                    )}
-
-                    {u.id !== 'demo_user_1' && (
-                      <button
-                        onClick={() => deleteUserAccount(u.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                        title="Delete this test account"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                          {u.id !== 'demo_user_1' && u.role !== 'admin' && (
+                            <button
+                              onClick={() => deleteUserAccount(u.id)}
+                              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                              title="Delete this account"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -455,33 +452,31 @@ export function AdminPanelView() {
               <span>How Notifications Work When App is ON vs OFF</span>
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Examiners often ask: <em>&ldquo;If the website is closed or the user is offline, will they still receive notifications?&rdquo;</em> Here is how the system handles both states:
+                Browser notifications and in-app alerts run locally while this page is open. This version does not deliver alerts in the background or to other devices.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-2">
                 <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs uppercase tracking-wider">
                   <Globe className="w-4 h-4 text-emerald-800" />
-                  <span>State 1: When Website / App is Open (ON)</span>
+                  <span>Foreground behavior</span>
                 </div>
                 <ul className="text-xs text-slate-700 space-y-1.5 list-disc list-inside">
-                  <li><strong>Auditory Alert:</strong> Web Audio API plays a pleasant harmonic chime immediately.</li>
-                  <li><strong>Visual Toast:</strong> In-app popover banner shows child name, due date, and vaccine.</li>
-                  <li><strong>In-App Badge:</strong> Top navbar notification bell reflects pending reminder count.</li>
-                  <li><strong>Browser System Notification:</strong> If permission is granted, a native desktop/mobile banner fires.</li>
+                  <li>The test creates a browser-local reminder and shows an in-app toast.</li>
+                  <li>Audio and native browser notifications depend on browser permissions and support.</li>
+                  <li>This does not test delivery to other users or devices.</li>
                 </ul>
               </div>
 
               <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
                 <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-wider">
                   <Smartphone className="w-4 h-4 text-slate-700" />
-                  <span>State 2: When Website / App is Closed (OFF)</span>
+                  <span>Background delivery</span>
                 </div>
                 <ul className="text-xs text-slate-700 space-y-1.5 list-disc list-inside">
-                  <li><strong>Service Worker:</strong> Registered in <code className="bg-stone-200 px-1 rounded font-mono">/public/sw.js</code> runs in background even when browser tabs are closed.</li>
-                  <li><strong>Server Cron Worker:</strong> <code className="bg-stone-200 px-1 rounded font-mono">/api/cron/process-reminders</code> queries due reminders daily at 09:00 AM IST.</li>
-                  <li><strong>W3C Web Push Protocol:</strong> Server pushes notification payload directly to the device&apos;s OS push daemon.</li>
-                  <li><strong>Next Login Sync:</strong> Whenever the parent re-opens the app, all missed due dates appear in the overdue and pending tray.</li>
+                  <li>Browser notifications work while this app is open and permission is granted.</li>
+                  <li>Background delivery to a closed browser or other devices is not available in local-only mode.</li>
+                  <li>Use the app as a record-keeping aid, not as a substitute for medical advice or clinic follow-up.</li>
                 </ul>
               </div>
             </div>
@@ -504,46 +499,17 @@ export function AdminPanelView() {
         <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm space-y-4">
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Database className="w-5 h-5 text-emerald-800" />
-            <span>Database Architecture & Environment Keys Guide</span>
+            <span>Local Data Storage</span>
           </h2>
           <p className="text-xs text-slate-600 leading-relaxed">
-            Clarification on environment variables and why the app works seamlessly even without third-party services:
+            Accounts and child health records are saved in this browser's local storage.
           </p>
 
           <div className="space-y-3 pt-2">
             <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 text-xs">
-              <div className="font-bold text-slate-900 flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-900 rounded font-mono text-[11px]">
-                  NEXT_PUBLIC_SUPABASE_URL & ANON_KEY
-                </span>
-                <span className="text-slate-500 font-normal">Optional Cloud Sync</span>
-              </div>
+              <strong className="block text-slate-900">Local browser storage</strong>
               <p className="text-slate-600 mt-1">
-                If provided, data syncs to a remote Supabase PostgreSQL database. If omitted, the application uses its <strong>Embedded Relational Storage Engine</strong>, which provides 100% full persistence, multi-user isolation, and 0 dependencies.
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 text-xs">
-              <div className="font-bold text-slate-900 flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-stone-200 text-slate-800 rounded font-mono text-[11px]">
-                  CRON_SECRET
-                </span>
-                <span className="text-slate-500 font-normal">Optional Security Token</span>
-              </div>
-              <p className="text-slate-600 mt-1">
-                Used to authorize external cloud cron providers (e.g. Vercel Cron). In local and demonstration mode, the cron endpoint can also be triggered directly from the Admin Panel.
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 text-xs">
-              <div className="font-bold text-slate-900 flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-stone-200 text-slate-800 rounded font-mono text-[11px]">
-                  VAPID_PUBLIC_KEY & VAPID_PRIVATE_KEY
-                </span>
-                <span className="text-slate-500 font-normal">Optional Server-to-OS Push</span>
-              </div>
-              <p className="text-slate-600 mt-1">
-                Only needed if sending remote push notifications to devices when the browser is entirely terminated. For live demo and standard browser notifications, the browser Notification API and Web Audio API handle everything natively.
+                Accounts and records are saved in this browser only. Export a backup from Settings before clearing browser data or moving to another device.
               </p>
             </div>
           </div>
@@ -555,57 +521,57 @@ export function AdminPanelView() {
         <div className="p-5 border-b border-stone-100 flex items-center justify-between">
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Baby className="w-4 h-4 text-emerald-800" />
-            <span>Active Parent&apos;s Registered Children</span>
+            <span>System-Wide Registered Children</span>
           </h2>
           <span className="text-xs text-slate-500 font-mono">
-            {childrenList.length} child profiles in this account
+            {systemChildren.length} child profiles visible in this browser
           </span>
         </div>
 
-        {childrenList.length > 0 ? (
-          <div className="divide-y divide-stone-100 text-xs">
-            {childrenList.map((child) => {
-              const age = calculateChildAge(child.dateOfBirth, language);
-              const childVaxes = vaccinations.filter((v) => v.childId === child.id);
-              const completed = childVaxes.filter((v) => v.status === 'completed').length;
-              const isSelected = child.id === selectedChildId;
+        {systemChildren.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-stone-200 text-xs">
+              <thead className="bg-stone-50 text-slate-600">
+                <tr>
+                  <th className="px-4 py-3 text-left font-bold">Child</th>
+                  <th className="px-4 py-3 text-left font-bold">Parent</th>
+                  <th className="px-4 py-3 text-left font-bold">DOB</th>
+                  <th className="px-4 py-3 text-left font-bold">Gender</th>
+                  <th className="px-4 py-3 text-left font-bold">Blood</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100 bg-white">
+                {systemChildren.map((child) => {
+                  const age = calculateChildAge(child.dateOfBirth, language);
+                  const isSelected = child.id === selectedChildId;
 
-              return (
-                <div key={child.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/60">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <strong className="text-sm text-slate-900">{child.name}</strong>
-                      <span className="text-slate-400">·</span>
-                      <span className="text-emerald-800 font-semibold">{age.formatted}</span>
-                      <span className="text-slate-400">·</span>
-                      <span>DOB: {child.dateOfBirth}</span>
-                    </div>
-                    <div className="text-slate-500 text-xs mt-1">
-                      Immunization Status: <strong>{completed} / {childVaxes.length} doses given</strong> ({child.gender.toUpperCase()} · Blood: {child.bloodGroup || 'N/A'})
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    {isSelected ? (
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-900 font-bold rounded-lg text-xs">
-                        Active Profile
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setSelectedChildId(child.id)}
-                        className="px-3 py-1 bg-stone-100 hover:bg-stone-200 text-slate-800 font-semibold rounded-lg text-xs transition-colors"
-                      >
-                        Switch To This Child
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                  return (
+                    <tr key={child.id} className="hover:bg-stone-50/60">
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-slate-900">{child.name}</div>
+                        <div className="text-[11px] text-emerald-800 font-semibold">{age.formatted}</div>
+                        {isSelected && (
+                          <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-900">
+                            Active
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div className="font-semibold text-slate-800">{child.parentName}</div>
+                        <div className="font-mono text-[11px] text-slate-500">{child.parentEmail}</div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{child.dateOfBirth}</td>
+                      <td className="px-4 py-3 text-slate-600">{child.gender}</td>
+                      <td className="px-4 py-3 text-slate-600">{child.bloodGroup || 'N/A'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="p-8 text-center text-xs text-slate-500">
-            No children registered under this parent account yet. Use &ldquo;Add Child&rdquo; on the Dashboard or Children tab.
+            No children have been registered in the system yet.
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 # Children Vaccine Mentor 🛡️
 ### Child Vaccination Management & Parental Health Companion (India & Maharashtra)
 
-Children Vaccine Mentor is a full-stack, mobile-responsive healthcare web application designed specifically for parents and guardians of children aged 0 to 5 years in India (especially Maharashtra). It helps families maintain precise vaccination records, understand upcoming immunization milestones, receive guaranteed three-stage reminders, track physical growth against WHO standards, and monitor post-vaccination symptoms.
+Children Vaccine Mentor is a local-first, mobile-responsive healthcare web application designed for parents and guardians of children aged 0 to 5 years in India, especially Maharashtra. It helps families maintain vaccination records, understand upcoming immunization milestones, manage a three-stage reminder schedule, track physical growth against WHO standards, and monitor post-vaccination symptoms.
 
 ---
 
@@ -12,10 +12,10 @@ Children Vaccine Mentor is a full-stack, mobile-responsive healthcare web applic
    - Covers birth doses (BCG, Hep B-0, OPV-0), 6/10/14-week primary series (Pentavalent, fIPV, Rotavirus, PCV), 9–12 month series (MR-1, PCV Booster, Vit A, fIPV-3), 16–24 month boosters (MR-2, DPT Booster-1, OPV Booster), and 5–6 year booster (DPT Booster-2).
    - Clear distinction between mandatory public-health UIP vaccines and optional private-practice vaccines (Typhoid Conjugate, Hep A, Varicella).
 
-2. **Mandatory Three-Stage Automated Reminder Engine:**
-   - **Stage 1 (7 Days Before / -7d):** Informs parents 1 week in advance to schedule clinic visits and transport.
+2. **Three-Stage Reminder Schedule:**
+   - **Stage 1 (7 Days Before / -7d):** Helps parents plan clinic visits and transport.
    - **Stage 2 (3 Days Before / -3d):** Prompts parents to confirm PHC/clinic availability and timings.
-   - **Stage 3 (Day 0 / Vaccination Day):** Sends a morning alert on the scheduled vaccination day.
+   - **Stage 3 (Day 0 / Vaccination Day):** Highlights the scheduled vaccination day in the app.
    - **Zero Duplicate Deliveries:** Deterministic idempotency keys (`rem_{childId}_{vaccineId}_{dose}_{stage}_{dueDate}`).
    - **Anti-Spam Skipping:** Past trigger dates are safely marked as `skipped_past` rather than back-spammed.
    - **Automatic Cancellation:** Marking a dose completed immediately cancels all pending future reminders.
@@ -38,17 +38,13 @@ Children Vaccine Mentor is a full-stack, mobile-responsive healthcare web applic
    - Logs temperature in °F and °C, observed reactions (fever, swelling, fussiness), duration in hours, actions taken, and doctor consultations.
    - Medically reviewed safety red-flags box guiding parents when to seek immediate emergency care (>102°F fever, crying >3h, convulsions, breathing difficulty).
 
-7. **Database & Row Level Security (RLS):**
-   - Normalized PostgreSQL schema in `supabase/migrations/20261013000000_init_schema.sql` covering `profiles`, `children`, `child_vaccinations`, `reminders`, `growth_records`, `symptom_records`, and `notification_delivery_logs`.
-   - Strict Row Level Security ensuring complete user isolation.
+7. **Local Accounts & Records:**
+   - Parent accounts, child profiles, vaccination records, reminders, growth, and symptom logs are saved in browser localStorage.
+   - Data is available only in the current browser profile and is not synchronized or backed up automatically.
 
-8. **Web Push & Service Worker:**
-   - PWA-ready service worker (`public/sw.js`) and Web Push notification dispatcher.
-   - In-app notification center bell with unread badge counters.
-
-9. **Server Background Cron:**
-   - Protected endpoint `GET /api/cron/process-reminders` authorized with `CRON_SECRET`.
-   - `vercel.json` configured for automated scheduled execution every 5 minutes.
+8. **Local Notifications:**
+   - In-app alerts, browser notifications, and audio chimes run on the current device while the app is open.
+   - No remote push or scheduled server delivery is configured.
 
 ---
 
@@ -59,8 +55,8 @@ Children Vaccine Mentor is a full-stack, mobile-responsive healthcare web applic
 - **Icons:** `lucide-react`
 - **Charts:** `recharts`
 - **Date Handling:** `date-fns`
-- **Database / Auth:** Supabase PostgreSQL + Supabase Auth (with offline/local storage fallback for instant demo and evaluation)
-- **Background Cron:** Vercel Cron (`vercel.json`) / Supabase Cron
+- **Storage / Auth:** Browser localStorage with local demonstration accounts
+- **Notifications:** In-app reminders and browser Notification API
 
 ---
 
@@ -76,18 +72,7 @@ npm install
 ```
 
 ### 3. Environment Variables
-Copy `.env.example` to `.env.local`:
-```bash
-cp .env.example .env.local
-```
-Fill in the configuration parameters:
-- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anonymous Public Key
-- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase Service Role Key (for background cron)
-- `CRON_SECRET`: Bearer token for authenticating `/api/cron/process-reminders`
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` & `VAPID_PRIVATE_KEY`: Web Push VAPID keys
-
-*(Note: If Supabase keys are not provided, Children Vaccine Mentor automatically launches in demo parent mode with local persistent storage!)*
+No environment variables are required for local accounts, records, reminders, or notifications. Optional AI features may use `GEMINI_API_KEY`.
 
 ### 4. Running the Development Server
 ```bash
@@ -107,7 +92,6 @@ Executes tests covering calendar calculations, leap-year transitions, 3-stage re
 
 ```
 ├── app/
-│   ├── api/cron/process-reminders/route.ts  # Background reminder delivery endpoint
 │   ├── globals.css                         # Tailwind CSS imports
 │   ├── layout.tsx                          # Root layout with AppProvider
 │   └── page.tsx                            # Primary application hub & tab routing
@@ -132,19 +116,11 @@ Executes tests covering calendar calculations, leap-year transitions, 3-stage re
 ├── lib/
 │   ├── growth-standards.ts                 # WHO 2006 Child Growth reference tables
 │   ├── i18n.ts                             # English & Marathi translation dictionary
-│   ├── push-notifications.ts               # Push API & permission helpers
 │   ├── store.tsx                           # Global state management & persistence
-│   ├── supabase.ts                         # Supabase client & admin client
 │   ├── types.ts                            # Domain TypeScript definitions
 │   └── vaccine-data.ts                     # UIP vaccine definitions & 3-stage engine
-├── public/
-│   └── sw.js                               # Service Worker for push notifications
-├── supabase/
-│   └── migrations/
-│       └── 20261013000000_init_schema.sql  # Full PostgreSQL schema with RLS policies
 ├── tests/
 │   └── vaccination-engine.test.ts          # Automated healthcare test suite
-├── vercel.json                             # Vercel Cron configuration (every 5 min)
 ├── HEALTHCARE_RESEARCH.md                  # MoHFW, UIP & IAP clinical research summary
 └── README.md                               # Project documentation & deployment guide
 ```

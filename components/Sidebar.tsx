@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useApp } from '@/lib/store';
+import { isAdminUser } from '@/lib/admin';
 import { translations } from '@/lib/i18n';
 import {
   LayoutDashboard,
@@ -33,8 +34,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
-  const { language, reminders, vaccinations, selectedChild } = useApp();
+  const { language, reminders, vaccinations, selectedChild, user } = useApp();
   const t = translations[language];
+  const isAdmin = isAdminUser(user);
 
   // Badges calculation
   const pendingRemindersCount = reminders.filter(
@@ -66,8 +68,11 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     { id: 'symptoms', label: t.nav.symptomLog, icon: Activity },
     { id: 'library', label: t.nav.vaccineLibrary, icon: BookOpen },
     { id: 'settings', label: t.nav.settings, icon: Settings },
-    { id: 'admin', label: language === 'mr' ? 'प्रशासक पॅनेल (Admin)' : 'Admin & Database', icon: ShieldCheck },
   ];
+
+  if (isAdmin) {
+    navItems.push({ id: 'admin', label: language === 'mr' ? 'प्रशासक पॅनेल (Admin)' : 'Admin & Database', icon: ShieldCheck });
+  }
 
   return (
     <aside className="hidden lg:flex flex-col w-64 border-r border-stone-200 bg-white min-h-[calc(100vh-4rem)] p-4">

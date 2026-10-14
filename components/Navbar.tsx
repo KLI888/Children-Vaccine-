@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
+import { isAdminUser } from '@/lib/admin';
 import { translations } from '@/lib/i18n';
 import {
   Bell,
@@ -34,6 +35,7 @@ export function Navbar({ onOpenNotifications, onOpenAuth, onSelectTab }: NavbarP
     logout,
   } = useApp();
 
+  const isAdmin = isAdminUser(user);
   const t = translations[language];
   const [showChildMenu, setShowChildMenu] = useState(false);
 
@@ -56,7 +58,7 @@ export function Navbar({ onOpenNotifications, onOpenAuth, onSelectTab }: NavbarP
                 {t.app.name}
               </span>
               <span className="hidden sm:inline text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                12 UIP Vaccines
+                {isAdmin ? 'Administration' : '12 UIP Vaccines'}
               </span>
             </div>
             <p className="hidden md:block text-xs text-slate-500 font-normal">
@@ -68,6 +70,7 @@ export function Navbar({ onOpenNotifications, onOpenAuth, onSelectTab }: NavbarP
         {/* Right side controls */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Active Child Selector */}
+          {!isAdmin && <>
           {childrenList.length > 0 ? (
             <div className="relative">
               <button
@@ -120,7 +123,7 @@ export function Navbar({ onOpenNotifications, onOpenAuth, onSelectTab }: NavbarP
           )}
 
           {/* Admin Panel Quick Link */}
-          {onSelectTab && (
+          {isAdmin && onSelectTab && (
             <button
               onClick={() => onSelectTab('admin')}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:text-emerald-900 bg-stone-100 hover:bg-emerald-50 rounded-lg transition-colors border border-stone-200"
@@ -155,6 +158,7 @@ export function Navbar({ onOpenNotifications, onOpenAuth, onSelectTab }: NavbarP
               </span>
             )}
           </button>
+          </>}
 
           {/* User profile / auth */}
           {user ? (
