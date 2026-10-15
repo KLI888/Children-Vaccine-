@@ -1,132 +1,162 @@
-# Children Vaccine Mentor 🛡️
-### Child Vaccination Management & Parental Health Companion (India & Maharashtra)
+# Children Vaccine Mentor
 
-Children Vaccine Mentor is a local-first, mobile-responsive healthcare web application designed for parents and guardians of children aged 0 to 5 years in India, especially Maharashtra. It helps families maintain vaccination records, understand upcoming immunization milestones, manage a three-stage reminder schedule, track physical growth against WHO standards, and monitor post-vaccination symptoms.
+A mobile-friendly childhood immunization tracker for parents and guardians in India, with a focus on routine vaccination scheduling, growth tracking, symptom monitoring, and reminder management.
 
----
+This project is built with Next.js and TypeScript and runs as a local-first web app for tracking a child's health journey from infancy through early childhood.
 
-## 🌟 Key Features
+## Overview
 
-1. **Indian National Immunization Schedule (UIP & IAP):**
-   - Grounded in official **Ministry of Health and Family Welfare (MoHFW)**, **National Health Mission (NHM)**, and **Indian Academy of Pediatrics (IAP)** guidelines.
-   - Covers birth doses (BCG, Hep B-0, OPV-0), 6/10/14-week primary series (Pentavalent, fIPV, Rotavirus, PCV), 9–12 month series (MR-1, PCV Booster, Vit A, fIPV-3), 16–24 month boosters (MR-2, DPT Booster-1, OPV Booster), and 5–6 year booster (DPT Booster-2).
-   - Clear distinction between mandatory public-health UIP vaccines and optional private-practice vaccines (Typhoid Conjugate, Hep A, Varicella).
+Children Vaccine Mentor helps families:
 
-2. **Three-Stage Reminder Schedule:**
-   - **Stage 1 (7 Days Before / -7d):** Helps parents plan clinic visits and transport.
-   - **Stage 2 (3 Days Before / -3d):** Prompts parents to confirm PHC/clinic availability and timings.
-   - **Stage 3 (Day 0 / Vaccination Day):** Highlights the scheduled vaccination day in the app.
-   - **Zero Duplicate Deliveries:** Deterministic idempotency keys (`rem_{childId}_{vaccineId}_{dose}_{stage}_{dueDate}`).
-   - **Anti-Spam Skipping:** Past trigger dates are safely marked as `skipped_past` rather than back-spammed.
-   - **Automatic Cancellation:** Marking a dose completed immediately cancels all pending future reminders.
-   - **Rescheduling:** Updating a scheduled due date recalculates all three trigger dates seamlessly.
+- track child vaccination schedules and dose completion
+- understand upcoming due dates and overdue vaccines
+- receive staged reminders before and on the vaccination day
+- monitor height and weight against WHO growth standards
+- log post-vaccination symptoms and fever observations
+- view bilingual information in English and Marathi
+- keep records in the browser using local storage for a simple demo experience
 
-3. **Bilingual Localization (English & Marathi / मराठी):**
-   - Full English and Unicode-safe Marathi translations across all navigations, dashboards, forms, buttons, vaccine libraries, reminders, and alerts.
-   - Instant language switcher with state persistence.
+## Key Features
 
-4. **Interactive Vaccination Calendar:**
-   - Agenda list and full month grid views with status filters (Upcoming, Completed, Due Today, Overdue).
-   - Detailed dose inspectors showing official administration routes, dosage amounts, and batch numbers.
+### Vaccination management
+- child profile creation and per-child vaccine tracking
+- support for immunization schedule data relevant to India
+- due date, completion, and overdue status tracking
+- searchable vaccine library and dose information
+- printable immunization card for quick reference
 
-5. **WHO Child Growth Tracker:**
-   - Tracks weight (kg) and height (cm) from birth to 5 years.
-   - Interactive Recharts visualization comparing child measurements with WHO Child Growth Standards (Median, +2SD, -2SD).
-   - Historical change tracking with pediatric safety disclaimers.
+### Reminder engine
+- 3-stage reminder workflow: 7 days before, 3 days before, and vaccination day
+- reminder scheduling tied to child-specific due dates
+- automatic recalculation when due dates are updated
+- local browser alerts and test notification support
 
-6. **Post-Vaccination Symptom & Fever Log:**
-   - Logs temperature in °F and °C, observed reactions (fever, swelling, fussiness), duration in hours, actions taken, and doctor consultations.
-   - Medically reviewed safety red-flags box guiding parents when to seek immediate emergency care (>102°F fever, crying >3h, convulsions, breathing difficulty).
+### Growth tracking
+- weight and height entries over time
+- visual comparison with WHO growth reference data
+- simple charting to monitor child growth trends
 
-7. **Local Accounts & Records:**
-   - Parent accounts, child profiles, vaccination records, reminders, growth, and symptom logs are saved in browser localStorage.
-   - Data is available only in the current browser profile and is not synchronized or backed up automatically.
+### Symptom logging
+- record temperature, reactions, observation notes, and follow-up actions
+- track fever and reaction duration
+- helpful guidance for identifying concerning post-vaccination symptoms
 
-8. **Local Notifications:**
-   - In-app alerts, browser notifications, and audio chimes run on the current device while the app is open.
-   - No remote push or scheduled server delivery is configured.
+### App experience
+- responsive dashboard for mobile and desktop use
+- bilingual English/Marathi interface
+- admin/demo console for managing data and notification behaviors
+- local-only storage model for a lightweight standalone app
 
----
+## Tech Stack
 
-## 🛠️ Technology Stack
+- Next.js 15
+- React 19
+- TypeScript
+- Tailwind CSS
+- Recharts
+- date-fns
+- lucide-react
+- localStorage-based state persistence
 
-- **Framework:** Next.js 15+ (App Router) with TypeScript
-- **Styling:** Tailwind CSS (v4) with deep-teal healthcare aesthetic
-- **Icons:** `lucide-react`
-- **Charts:** `recharts`
-- **Date Handling:** `date-fns`
-- **Storage / Auth:** Browser localStorage with local demonstration accounts
-- **Notifications:** In-app reminders and browser Notification API
+## Project Structure
 
----
+```text
+.
+├── app/
+│   ├── api/
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── AdminPanelView.tsx
+│   ├── AuthModal.tsx
+│   ├── CalendarView.tsx
+│   ├── ChildrenView.tsx
+│   ├── DashboardView.tsx
+│   ├── GrowthTrackerView.tsx
+│   ├── Navbar.tsx
+│   ├── NotificationModal.tsx
+│   ├── RemindersView.tsx
+│   ├── SettingsView.tsx
+│   ├── Sidebar.tsx
+│   ├── SymptomTrackerView.tsx
+│   └── VaccineLibraryView.tsx
+├── lib/
+│   ├── growth-standards.ts
+│   ├── i18n.ts
+│   ├── store.tsx
+│   ├── types.ts
+│   └── vaccine-data.ts
+├── supabase/
+│   └── migrations/
+├── tests/
+│   └── vaccination-engine.test.ts
+├── HEALTHCARE_RESEARCH.md
+├── README.md
+├── package.json
+├── next.config.ts
+├── tsconfig.json
+├── postcss.config.mjs
+├── eslint.config.mjs
+└── metadata.json
+```
 
-## 🚀 Getting Started
+## Getting Started
 
-### 1. Prerequisites
-- Node.js 18+ or Node.js 20+
-- npm or pnpm
+### Prerequisites
 
-### 2. Installation
+- Node.js 18 or newer
+- npm
+
+### Install dependencies
+
 ```bash
 npm install
 ```
 
-### 3. Environment Variables
-No environment variables are required for local accounts, records, reminders, or notifications. Optional AI features may use `GEMINI_API_KEY`.
+### Run the app locally
 
-### 4. Running the Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 5. Running the Automated Test Suite
+Then open:
+
+```text
+http://localhost:3000
+```
+
+### Production build
+
+```bash
+npm run build
+```
+
+### Production server
+
+```bash
+npm run start
+```
+
+### Run tests
+
 ```bash
 npm test
 ```
-Executes tests covering calendar calculations, leap-year transitions, 3-stage reminder generators, idempotency keys, and bilingual string formatting.
 
----
+### Linting
 
-## 📁 Repository Structure
-
-```
-├── app/
-│   ├── globals.css                         # Tailwind CSS imports
-│   ├── layout.tsx                          # Root layout with AppProvider
-│   └── page.tsx                            # Primary application hub & tab routing
-├── components/
-│   ├── AuthModal.tsx                       # Sign-in, sign-up & demo mode modal
-│   ├── CalendarView.tsx                    # Month & Agenda vaccination calendar
-│   ├── ChildrenView.tsx                    # Child profiles management & age engine
-│   ├── DashboardView.tsx                   # Main KPI home dashboard & countdowns
-│   ├── GrowthTrackerView.tsx               # WHO growth charts & measurement logs
-│   ├── MobileNav.tsx                       # Mobile bottom navigation bar
-│   ├── Navbar.tsx                          # Top navigation, language & notifications
-│   ├── NotificationModal.tsx               # In-app 3-stage notification drawer
-│   ├── RecordVaccinationModal.tsx          # Vaccination completion modal
-│   ├── EditDueDateModal.tsx                # Due-date editing & rescheduling modal
-│   ├── AddChildModal.tsx                   # New child registration modal
-│   ├── AddGrowthModal.tsx                  # Growth record logger modal
-│   ├── AddSymptomModal.tsx                 # Post-vaccination symptom logger modal
-│   ├── RemindersView.tsx                   # Three-stage reminder center
-│   ├── SettingsView.tsx                    # Preferences, delivery times & export
-│   ├── Sidebar.tsx                         # Desktop collapsible sidebar navigation
-│   └── VaccineLibraryView.tsx              # Searchable UIP & IAP vaccine library
-├── lib/
-│   ├── growth-standards.ts                 # WHO 2006 Child Growth reference tables
-│   ├── i18n.ts                             # English & Marathi translation dictionary
-│   ├── store.tsx                           # Global state management & persistence
-│   ├── types.ts                            # Domain TypeScript definitions
-│   └── vaccine-data.ts                     # UIP vaccine definitions & 3-stage engine
-├── tests/
-│   └── vaccination-engine.test.ts          # Automated healthcare test suite
-├── HEALTHCARE_RESEARCH.md                  # MoHFW, UIP & IAP clinical research summary
-└── README.md                               # Project documentation & deployment guide
+```bash
+npm run lint
 ```
 
----
+## Notes
 
-## 🏥 Clinical Disclaimer
+- This application is designed as a local demo and personal health management tool.
+- Data is stored in the browser using localStorage, so it is available only on the current device/browser profile.
+- Browser notification support depends on browser permissions and device capabilities.
+- The project is intended for educational and personal planning use and should not replace qualified medical advice.
 
-Children Vaccine Mentor is an educational and personal health record management tool designed to assist parents in staying informed regarding the routine immunization timetable. It is **not** a replacement for clinical consultation with a qualified pediatrician, medical officer, or authorized Primary Health Centre (PHC) staff. Always seek professional healthcare evaluation for medical emergencies, persistent high fever, or adverse reactions following immunization.
+## Clinical Disclaimer
+
+Children Vaccine Mentor is a supportive health-planning tool for parents and guardians. It is not a replacement for medical consultation, diagnosis, or treatment by a qualified pediatrician or healthcare professional. Always seek professional medical guidance for concerns around vaccination, fever, adverse reactions, or any child's health condition.
