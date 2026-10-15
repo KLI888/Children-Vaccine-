@@ -52,7 +52,7 @@ export default function Home() {
       : activeTab;
 
   return (
-    <div className="min-h-screen bg-[#FBFBFA] text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_30%),linear-gradient(180deg,#f8fffc_0%,#f7f8f9_100%)] text-slate-800 flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
       {/* Top Navbar */}
       <Navbar
         onOpenNotifications={() => setShowNotificationModal(true)}

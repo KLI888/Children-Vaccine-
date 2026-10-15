@@ -56,23 +56,25 @@ export function DashboardView({
   // If no children in account
   if (!selectedChild || childrenList.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto py-12 px-4 text-center">
-        <div className="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Baby className="w-8 h-8" />
+      <div className="max-w-5xl mx-auto py-12 px-4">
+        <div className="rounded-[28px] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-8 sm:p-12 text-center shadow-[0_20px_60px_-30px_rgba(16,185,129,0.35)]">
+          <div className="w-20 h-20 bg-gradient-to-br from-emerald-600 to-teal-500 text-white rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-200/50">
+            <Baby className="w-9 h-9" />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 mb-3">
+            {language === 'mr' ? 'आपले स्वागत आहे!' : 'Welcome to Children Vaccine Mentor'}
+          </h2>
+          <p className="text-slate-600 max-w-xl mx-auto mb-6 text-sm sm:text-base leading-relaxed">
+            {t.dashboard.noChildren}
+          </p>
+          <button
+            onClick={onOpenAddChild}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold rounded-2xl shadow-lg shadow-emerald-200/60 transition-all duration-200"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t.dashboard.addChild}</span>
+          </button>
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">
-          {language === 'mr' ? 'आपले स्वागत आहे!' : 'Welcome to Children Vaccine Mentor'}
-        </h2>
-        <p className="text-slate-600 max-w-md mx-auto mb-6 text-sm">
-          {t.dashboard.noChildren}
-        </p>
-        <button
-          onClick={onOpenAddChild}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white font-medium rounded-xl shadow-sm transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t.dashboard.addChild}</span>
-        </button>
       </div>
     );
   }
@@ -233,11 +235,13 @@ export function DashboardView({
       {/* Main KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Card 1: Next upcoming vaccine */}
-        <div className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-white to-emerald-50/60 rounded-2xl p-5 border border-emerald-100 shadow-[0_12px_30px_-20px_rgba(16,185,129,0.7)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-[0.14em] mb-3">
               <span>{t.dashboard.upcomingNext}</span>
-              <Calendar className="w-4 h-4 text-emerald-700" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                <Calendar className="w-4 h-4" />
+              </div>
             </div>
             {nextUpcoming ? (
               <div>
@@ -249,7 +253,7 @@ export function DashboardView({
                 <p className="text-xs text-slate-500 mt-1">
                   {language === 'mr' ? 'डोस' : 'Dose'} {nextUpcoming.doseNumber} · {nextUpcoming.dueDate}
                 </p>
-                <div className="mt-4 p-3 bg-stone-50 rounded-xl border border-stone-200/70 flex items-baseline justify-between">
+                <div className="mt-4 p-3 bg-white rounded-xl border border-emerald-100 shadow-sm flex items-baseline justify-between">
                   <span className="text-xs text-slate-600">{t.dashboard.countdown}:</span>
                   <span className={`text-xl font-extrabold ${countdownDays <= 3 ? 'text-amber-700' : 'text-emerald-800'}`}>
                     {countdownDays <= 0 ? 'Today' : `${countdownDays} ${language === 'mr' ? 'दिवस' : 'days'}`}
@@ -273,11 +277,13 @@ export function DashboardView({
         </div>
 
         {/* Card 2: Immunization progress */}
-        <div className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-white to-sky-50/50 rounded-2xl p-5 border border-sky-100 shadow-[0_12px_30px_-20px_rgba(14,165,233,0.7)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-[0.14em] mb-3">
               <span>{t.dashboard.progressTitle}</span>
-              <ShieldCheck className="w-4 h-4 text-emerald-700" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-3xl font-extrabold text-slate-900">
@@ -290,7 +296,7 @@ export function DashboardView({
             {/* Progress bar */}
             <div className="w-full h-2.5 bg-stone-100 rounded-full mt-3 overflow-hidden border border-stone-200/50">
               <div
-                className="h-full bg-emerald-700 rounded-full transition-all duration-500"
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full transition-all duration-500"
                 style={{ width: `${completionPercent}%` }}
               />
             </div>
@@ -308,11 +314,13 @@ export function DashboardView({
         </div>
 
         {/* Card 3: Growth & development status */}
-        <div className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-white to-amber-50/60 rounded-2xl p-5 border border-amber-100 shadow-[0_12px_30px_-20px_rgba(251,191,36,0.7)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-[0.14em] mb-3">
               <span>{t.growth.title}</span>
-              <TrendingUp className="w-4 h-4 text-emerald-700" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                <TrendingUp className="w-4 h-4" />
+              </div>
             </div>
             {latestGrowth ? (
               <div className="space-y-2 mt-1">
